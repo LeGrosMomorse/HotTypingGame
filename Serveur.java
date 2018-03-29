@@ -1,3 +1,4 @@
+import java.awt.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -13,10 +14,11 @@ public class Serveur {
     public PrintWriter[] listeFluxSortants;     //regroupe les flux sortants dans une liste avec comme index l'ordre de connexion des machines
     public int[] machineUtilisee;               //donne pour chaque equipe (index) l'index de la machine qui est actuellement utilisée  -- s'il n'y en a pas alors -> 9999
     public int[] scoreEquipes;                  //donne pour chaque equipe (index) le score de l'équipe en question
-
+    public ArrayList<String> listeCouleur;                    //liste qui donne les couleurs
 
     public static int NB_MACHINES = 7;          //nombre maxi de machine connectée
-    public static int NB_EQUIPES = 4;           //nombre maxi d'équipes : 8
+    public static int NB_EQUIPES = 5;           //nombre maxi d'équipes : 8
+    public static int NB_SCORE_GAGNANT = 2;    //score pour gagner
                                                 // 0:red - 1:yellow - 2:blue - 3:pink - 4:green - 5:black - 6:orange - 7:magenta - default:white
     public Random generateurNombreAleatoire;
 
@@ -39,6 +41,18 @@ public class Serveur {
             this.scoreEquipes[i] = 0;
             this.machineUtilisee[i] = 9999;      //pour la fonction choisirMachineAleatoire
         }
+        this.listeCouleur = new ArrayList<String>();
+        this.listeCouleur.add("ROUGE");
+        this.listeCouleur.add("JAUNE");
+        this.listeCouleur.add("BLEU");
+        this.listeCouleur.add("ROSE");
+        this.listeCouleur.add("VERT");
+        this.listeCouleur.add("NOIR");
+        this.listeCouleur.add("ORANGE");
+        this.listeCouleur.add("MAGENTA");
+        this.listeCouleur.add("BLANC");
+
+
     }
 
     public void enregistrementService(int port) {
@@ -54,11 +68,11 @@ public class Serveur {
 
 
 
-    public Socket nouvelleConnexion() {
+    public Socket nouvelleConnexion(int i) {
         Socket socket = null;
         try {
             socket = serverSocket.accept(); // fonction bloquante, crée et retourne le socket
-            System.out.println("*** Nouvelle connexion ***");
+            System.out.println("*** Nouvelle connexion : "+(i+1)+" ***");
         } catch (IOException e) {
             e.printStackTrace();
             System.err.println("ERREUR - Serveur:nouvelleConnexion()");
@@ -74,23 +88,27 @@ public class Serveur {
             System.exit(1);
         }
 
+        System.out.println("CONFIGURATION : \n\tNombres de machines : "+NB_MACHINES+"\n\tNombre d'équipes : "+NB_EQUIPES);
+
         int port = Integer.parseInt(args[0]);
         Serveur s = new Serveur();
 
         s.enregistrementService(port);
 
         for (int i = 0 ; i < NB_MACHINES ; i++){
-            Socket socket = s.nouvelleConnexion();
+            Socket socket = s.nouvelleConnexion(i);
             s.listeFluxEntrants[i] = Util.fluxEntrant(socket);
             s.listeFluxSortants[i] = Util.fluxSortant(socket);
         }
+
+        //il faut appuyer pour lancer la partie
+        s.lancementPartie();
 
         System.out.println("La partie commence !");
 
         //on dit sur toutes les machines que la partie a commencée
         s.envoieCollectif("La partie a commencée !");
 
-        String message;
 
         //on envoit un premier message pour initialiser
         for (int i = 0 ; i < NB_EQUIPES ; i++){
@@ -98,9 +116,16 @@ public class Serveur {
             s.envoieCombinaisonAUneEquipe(i);
         }
 
+        String message;
         boolean gagne = false;
 
         while(!gagne) {
+
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
             for (int i = 0 ; i < NB_EQUIPES ; i++){
                 //on parcourt la liste des flux entrant possibles (en fonction des machines utilisées)
@@ -108,22 +133,34 @@ public class Serveur {
                 try {
                     if(s.listeFluxEntrants[s.machineUtilisee[i]].ready()){
 
-                        System.out.println("ON EST LA - 1");
                         message = s.listeFluxEntrants[s.machineUtilisee[i]].readLine();
-                        System.out.println("ON EST LA - 2");
                         int numeroEquipe = Integer.parseInt(message);
                         s.scoreEquipes[numeroEquipe] += 1;                     //on augmente de 1 le score de l'équipe
 
+                        if(s.scoreEquipes[numeroEquipe] == NB_SCORE_GAGNANT){
 
-                        //j'affiche les scores de l'équipes
-                        for(int j = 0 ; j < NB_EQUIPES ; j++){
-                            System.out.print("e"+j+" : "+s.scoreEquipes[j]+"\n");
-                        }
-
-
-                        if(s.scoreEquipes[numeroEquipe] == 10){
                             gagne = true;
-                            s.envoieCollectif("Le gagnant est l'équipe n°"+numeroEquipe);
+
+                            message = "Partie terminée.";
+
+                            //pour clear le terminal : "\033[H\033[2J"
+                            System.out.println("\033[H\033[2J\n"+message);
+                            s.envoieCollectif(message);
+
+
+                            //PB : lorsqu'on envoit un message avec "\n" il envoit le message jusqu'au "\n" et ignore la suite !
+                            //donc on envoit avec des '_' à la place des "\n" puis on utilise la fonction replaceAll qui permet de remplacer
+
+                            message = "L'équipe "+s.listeCouleur.get(numeroEquipe)+" a gagnée !"+s.lesScoresDesEquipes();
+                            //on décrypte le message
+                            message = message.replaceAll("_", "\n");
+                            System.out.println(message);
+                            s.envoieCollectif(message);
+
+
+                            //on envoit les scores à tous les clients
+                            s.envoieCollectif(message);
+
                         }
                         else{
 
@@ -151,11 +188,13 @@ public class Serveur {
     //FONCTION RESEAU
 
     public void envoieCollectif(String message){
+
+        System.out.println("\t\tENVOI MASSIF ----->"+message);
+
         for (int i = 0 ; i < NB_MACHINES ; i++){
             this.listeFluxSortants[i].println(message);
             this.listeFluxSortants[i].flush();
         }
-        System.out.println(" *** "+message+" *** ");
     }
 
     public void envoieCombinaisonAUneEquipe(int numEquipe){
@@ -206,13 +245,30 @@ public class Serveur {
         return (char)((int)'A'+n);
     }
 
-/*
-    public String choisirCouleurAleatoire(){
-        return String.valueOf(generateurNombreAleatoire.nextInt(NB_EQUIPES));
-    }
-*/
+
+
     public String nouvelleCombinaisonLettreCouleur(int i){
+
         return choisirLettreAleatoire() + ":" + String.valueOf(i);
+    }
+
+
+
+    public String lesScoresDesEquipes(){
+        String lesScores = "_SCORES :_";
+        //j'affiche les scores de l'équipes
+        for(int i = 0 ; i < NB_EQUIPES ; i++){
+            lesScores += "\tEquipe "+this.listeCouleur.get(i)+"\t-> "+this.scoreEquipes[i]+"_";
+        }
+
+        return lesScores;
+    }
+
+    public void lancementPartie(){
+
+        System.out.println("Appuyer pour lancer la partie !");
+        Scanner scan = new Scanner(System.in);
+        String saisie = scan.nextLine();
     }
 
 

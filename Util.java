@@ -8,15 +8,8 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class Util {
-    // Méthode permettant de saisir une chaîne de caractères d’au plus 100 caractères.
-    static public String saisieClavier100(){
-        System.out.println("Taper un nombre entier :");
-        Scanner scan=new Scanner(System.in);
-        String saisie=scan.nextLine();
-        if (saisie.length()>100)
-            return saisie.substring(0,100);
-        return saisie;
-    }
+
+
     // Méthode permettant d’obtenir un BufferedReader correspondant au flux entrant d’un // Socket
     static public BufferedReader fluxEntrant(Socket socket){
         InputStream inputStream;

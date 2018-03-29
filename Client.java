@@ -27,8 +27,6 @@ public class Client {
 
 
 
-
-
     public static void main(String[] args) {
         if (args.length != 2) {
             System.err.println("ERREUR : Client:main(String[] args) -- 1");
@@ -69,8 +67,30 @@ public class Client {
                 //on recoit un message
                 message = fluxEntrant.readLine();
 
-                System.out.println("Message reçu !\t"+message);
+                System.out.println("Message reçu !\n\t\t"+message);
+
+                //dans tous les cas on split le message
                 String[] parts = message.split(":");
+
+
+
+                if(parts[0].equals("Partie terminée.")){
+
+
+                    //pour clear le terminal : "\033[H\033[2J"
+                    System.out.println("\033[H\033[2J\nPartie terminée.");
+
+                    //on va recevoir le message de fin
+                    message = fluxEntrant.readLine();
+
+                    //on remplace tous les "_" par des "\n"
+                    message = message.replaceAll("_", "\n");
+                    System.out.println(message);
+
+                    //on arrete le programme
+                    System.exit(1);
+                }
+
 
                 //on affiche la fenetre avec les informations qu'on a reçu
                 c.window.afficherLettre(parts[0].charAt(0), Integer.parseInt(parts[1]));
@@ -90,6 +110,8 @@ public class Client {
                 System.exit(1);
             }
         }
+
+
 
 
     }
