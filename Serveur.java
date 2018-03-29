@@ -16,9 +16,9 @@ public class Serveur {
     public int[] scoreEquipes;                  //donne pour chaque equipe (index) le score de l'équipe en question
     public ArrayList<String> listeCouleur;                    //liste qui donne les couleurs
 
-    public static int NB_MACHINES = 7;          //nombre maxi de machine connectée
-    public static int NB_EQUIPES = 5;           //nombre maxi d'équipes : 8
-    public static int NB_SCORE_GAGNANT = 2;    //score pour gagner
+    public static int NB_MACHINES = 9;          //nombre maxi de machine connectée
+    public static int NB_EQUIPES = 9;           //nombre maxi d'équipes : 8
+    public static int NB_SCORE_GAGNANT = 1;     //score pour gagner
                                                 // 0:red - 1:yellow - 2:blue - 3:pink - 4:green - 5:black - 6:orange - 7:magenta - default:white
     public Random generateurNombreAleatoire;
 
@@ -39,7 +39,7 @@ public class Serveur {
 
         for(int i = 0 ; i < NB_EQUIPES ; i++) {
             this.scoreEquipes[i] = 0;
-            this.machineUtilisee[i] = 9999;      //pour la fonction choisirMachineAleatoire
+            this.machineUtilisee[i] = 9999;      //pour la fonction choisirMachineAleatoire     -- il ne peut pas y avoir plus de 9999 machines connectées
         }
         this.listeCouleur = new ArrayList<String>();
         this.listeCouleur.add("ROUGE");
@@ -152,14 +152,16 @@ public class Serveur {
                             //donc on envoit avec des '_' à la place des "\n" puis on utilise la fonction replaceAll qui permet de remplacer
 
                             message = "L'équipe "+s.listeCouleur.get(numeroEquipe)+" a gagnée !"+s.lesScoresDesEquipes();
+                            //on l'envoit avant de le décrypter!!
+                            s.envoieCollectif(message);
+
                             //on décrypte le message
                             message = message.replaceAll("_", "\n");
                             System.out.println(message);
-                            s.envoieCollectif(message);
-
 
                             //on envoit les scores à tous les clients
-                            s.envoieCollectif(message);
+
+
 
                         }
                         else{
@@ -188,8 +190,6 @@ public class Serveur {
     //FONCTION RESEAU
 
     public void envoieCollectif(String message){
-
-        System.out.println("\t\tENVOI MASSIF ----->"+message);
 
         for (int i = 0 ; i < NB_MACHINES ; i++){
             this.listeFluxSortants[i].println(message);
@@ -255,7 +255,7 @@ public class Serveur {
 
 
     public String lesScoresDesEquipes(){
-        String lesScores = "_SCORES :_";
+        String lesScores = "__SCORES :_";
         //j'affiche les scores de l'équipes
         for(int i = 0 ; i < NB_EQUIPES ; i++){
             lesScores += "\tEquipe "+this.listeCouleur.get(i)+"\t-> "+this.scoreEquipes[i]+"_";

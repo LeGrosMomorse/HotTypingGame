@@ -16,7 +16,7 @@ public class Client {
             socket = new Socket(adresseServeur, port); // constructeur
         } catch (IOException e) {
             e.printStackTrace();
-            System.err.println("<!> Problème dans Client:connexion");
+            System.err.println("\n *** IL FAUT LANCER LE SERVEUR EN PREMIER. *** \n");
             System.exit(1);
         }
         System.out.println("*** Connexion établie ***");
@@ -83,7 +83,7 @@ public class Client {
                     //on va recevoir le message de fin
                     message = fluxEntrant.readLine();
 
-                    //on remplace tous les "_" par des "\n"
+                    //on décrypte le message
                     message = message.replaceAll("_", "\n");
                     System.out.println(message);
 
